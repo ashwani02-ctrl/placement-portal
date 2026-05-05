@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { SearchForm } from "@/app/dashboard/components/search-form"
-import { VersionSwitcher } from "@/app/dashboard/components/version-switcher"
+
 import {
   Sidebar,
   SidebarContent,
