@@ -19,39 +19,45 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { url } from "inspector";
 
 export default function AppSidebar() {
   const [active, setActive] = useState<number | null>(null);
 
   const sidebarMenuItems = [
-    {
-      key: 1,
-      name: "Dashboard",
-      url: "/dashboard",
-    },
+    // {
+    //   key: 1,
+    //   name: "Dashboard",
+    //   url: "/dashboard",
+    // },
     {
       key: 2,
       name: "Company",
       url: "/dashboard/company",
     },
-    {
+    // {
 
-      key: 3,
-      name: "Course",
-      url: "/dashboard/course",
-    },
+    //   key: 3,
+    //   name: "Course",
+    //   url: "/dashboard/course",
+    // },
     {
 
       key: 4,
       name: "Job",
       url: "/dashboard/job",
     },
-    {
+    // {
 
-      key: 5,
-      name: "Student",
-      url: "/dashboard/student",
-    },
+    //   key: 5,
+    //   name: "Student",
+    //   url: "/dashboard/student",
+    // },
+    {
+      key: 6,
+      name: "Application",
+      url: "/dashboard/application",
+    }
   ]
   const router = useRouter();
   const handleClick = (key: number, url: string) => {
