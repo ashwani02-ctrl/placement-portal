@@ -32,8 +32,8 @@ export default function AppSidebar() {
     // },
     {
       key: 2,
-      name: "Company",
-      url: "/dashboard/company",
+      name: "Resume Generator",
+      url: "/dashboard/resume-generator",
     },
     // {
 
@@ -44,7 +44,7 @@ export default function AppSidebar() {
     {
 
       key: 4,
-      name: "Job",
+      name: "Job Postings",
       url: "/dashboard/job",
     },
     // {

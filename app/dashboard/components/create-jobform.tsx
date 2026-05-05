@@ -1,249 +1,183 @@
-"use client"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import Cookies from "js-cookie"
-import dynamic from "next/dynamic";
-import { toast } from "sonner"
-import React, { useState } from "react";
-import TiptapEditor from "./tiptapeditor";
+"use client";
+
+import { useState } from "react";
+import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+
 import {
-    Field,
-    FieldDescription,
-    FieldGroup,
-    FieldLabel,
-    FieldSeparator,
-    FieldError,
-    FieldContent
-} from "@/components/ui/field"
-import { useForm, Controller } from "react-hook-form";
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod";
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
-export const jobSchema = z.object({
-    title: z
-        .string()
-        .min(3, "Title must be at least 3 characters")
-        .max(100, "Title too long"),
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
-    description: z
-        .string()
-        .min(10, "Job description is required"), // CKEditor returns HTML string
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
-    skills: z
-        .string()
-        .min(2, "Enter at least one skill")
-        .refine((val) => val.split(",").length >= 1, {
-            message: "Skills must be comma separated",
-        }),
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 
-    deadline: z
-        .coerce.date()
-    ,
+export default function CreateJobForm() {
+    const [description, setDescription] = useState("");
+    const [deadline, setDeadline] = useState<Date | undefined>();
 
-    location: z.enum([
-        "Delhi",
-        "Mumbai",
-        "Bangalore",
-        "Hyderabad",
-        "Chennai",
-        "Pune",
-        "Kolkata",
-        "Noida",
-    ]),
+    const handleSubmit = async (e: any) => {
+        e.preventDefault();
 
-    salary: z
-        .number()
-        .min(0, "Salary must be positive")
-        .max(10000000, "Salary too large"),
-});
-
-export function CreateJobForm({
-    className,
-    ...props
-}: React.ComponentProps<"div">) {
-    const form = useForm<z.input<typeof jobSchema>>({
-        resolver: zodResolver(jobSchema),
-        defaultValues: {
-            title: "",
-            description: "",
-            skills: "",
-            deadline: undefined,
-            location: "Delhi",
-            salary: 0,
-        },
-    });
-
-    // submit handler
-    async function onSubmit(values: z.input<typeof jobSchema>) {
-        toast("You submitted the following values:", {
-            description: (
-                <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
-                    <code>{JSON.stringify(values, null, 2)}</code>
-                </pre>
-            ),
-            position: "top-center",
-            classNames: {
-                content: "flex flex-col gap-2",
-            },
-            style: {
-                "--border-radius": "calc(var(--radius)  + 4px)",
-            } as React.CSSProperties,
-        });
-
-        const token = Cookies.get("token");
-        // toast(`token: ${token}`);
+        const payload = {
+            title: e.target.title.value,
+            description,
+            location: e.target.location.value,
+            salary: e.target.salary.value,
+            deadline,
+        };
 
         try {
-            const res = await fetch(`/api/jobs/`, {
+            const res = await fetch("/api/jobs", {
                 method: "POST",
-                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify(values),
+                credentials: "include", // 🔥 important for cookies/session auth
+                body: JSON.stringify(payload),
             });
 
-            const result = await res.json();
+            const raw = await res.text();
 
-
-            if (res.status == 500) {
-                toast.error(`${result.message}`, { position: "top-center" });
-            }
-            else if (!res.ok) {
-                toast.error(result.message || "Job Creation failed");
-                throw new Error(JSON.stringify(result));
-            }
-            else {
-                toast("Job Created!", { position: "top-center" });
+            let data;
+            try {
+                data = JSON.parse(raw); // 👈 try parsing JSON
+            } catch {
+                console.error("Raw response:", raw); // 🔥 THIS is what you need to see
+                throw new Error("Server returned HTML instead of JSON");
             }
 
-        } catch (err) {
-            console.error("Login error:", err);
+            if (!res.ok) {
+                throw new Error(data?.message || "Something went wrong");
+            }
+
+            console.log("Success:", data);
+
+            // Optional UX improvements
+            alert("Job posted successfully");
+            e.target.reset();
+
+        } catch (error: any) {
+            console.error("Error:", error.message);
+            alert(error.message);
         }
-    }
+    };
 
-
+    //   if (!editor) return null;
 
     return (
-        <div className={cn("flex flex-col gap-6 px-10 py-10", className)} {...props}>
-            <Card>
-                <CardHeader className="text-center">
-                    <CardTitle className="text-xl">Create Job Form</CardTitle>
+        <div className="max-w-4xl mx-auto mt-10 px-4">
+            <Card className="shadow-xl border rounded-2xl">
+                <CardHeader>
+                    <CardTitle className="text-2xl font-semibold">
+                        Post a Job
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                        Fill in the details to publish a new job opening
+                    </p>
                 </CardHeader>
+
                 <CardContent>
-                    {/* <Form {...form}> */}
-                    <form id="create-job-form" onSubmit={form.handleSubmit(onSubmit)}>
-                        <FieldGroup>
+                    <form onSubmit={handleSubmit} className="space-y-6">
 
-                            {/* title Controller */}
-                            <Controller
+                        {/* Title */}
+                        <div className="space-y-2">
+                            <Label>Job Title</Label>
+                            <Input
                                 name="title"
-                                control={form.control}
-                                render={({ field, fieldState }) => (
-                                    <Field data-invalid={fieldState.invalid}>
-                                        <FieldLabel>Job Title</FieldLabel>
-                                        <Input {...field} placeholder="Enter job title" />
-                                        {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                                    </Field>
-                                )}
+                                placeholder="e.g. Frontend Developer"
+                                required
                             />
+                        </div>
 
-                            {/* Description Controller */}
-                            <Controller
-                                name="description"
-                                control={form.control}
-                                render={({ field }) => (
-                                    <Field>
-                                        <FieldLabel>Job Description</FieldLabel>
-                                        <TiptapEditor
-                                            value={field.value || ""}
-                                            onChange={field.onChange}
-                                        />
-                                    </Field>
-                                )}
-                            />
-                            {/* Skills Controller */}
-                            <Controller
-                                name="skills"
-                                control={form.control}
-                                render={({ field }) => (
-                                    <Field>
-                                        <FieldLabel>Skills</FieldLabel>
-                                        <Input {...field} placeholder="react, node, express" />
-                                    </Field>
-                                )}
-                            />
+                        {/* Location + Salary */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Location</Label>
+                                <Input
+                                    name="location"
+                                    placeholder="e.g. Delhi / Remote"
+                                    required
+                                />
+                            </div>
 
-                            {/*  */}
-                            <Controller
-                                name="deadline"
-                                control={form.control}
-                                render={({ field }) => (
-                                    <Field>
-                                        <FieldLabel>Deadline</FieldLabel>
+                            <div className="space-y-2">
+                                <Label>Salary</Label>
+                                <Input
+                                    name="salary"
+                                    placeholder="e.g. ₹6-10 LPA"
+                                />
+                            </div>
+                        </div>
 
-                                        <Input
-                                            type="datetime-local"
-                                            value={
-                                                field.value
-                                                    ? new Date(field.value as string | number | Date).toISOString().slice(0, 16)
-                                                    : ""
-                                            }
-                                            onChange={(e) => field.onChange(e.target.value)}
-                                        />
+                        {/* Deadline */}
+                        <div className="space-y-2">
+                            <Label>Application Deadline</Label>
 
-                                    </Field>
-                                )}
-                            />
-                            {/* location controller */}
-                            <Controller
-                                name="location"
-                                control={form.control}
-                                render={({ field }) => (
-                                    <Field>
-                                        <FieldLabel>Location</FieldLabel>
-                                        <select {...field} className="border p-2 rounded">
-                                            <option value="Delhi">Delhi</option>
-                                            <option value="Mumbai">Mumbai</option>
-                                            <option value="Bangalore">Bangalore</option>
-                                            <option value="Hyderabad">Hyderabad</option>
-                                            <option value="Chennai">Chennai</option>
-                                            <option value="Pune">Pune</option>
-                                            <option value="Kolkata">Kolkata</option>
-                                            <option value="Noida">Noida</option>
-                                        </select>
-                                    </Field>
-                                )}
-                            />
-                            {/* salary Controller */}
-                            <Controller
-                                name="salary"
-                                control={form.control}
-                                render={({ field }) => (
-                                    <Field>
-                                        <FieldLabel>Salary</FieldLabel>
-                                        <Input type="number" {...field}
-                                            onChange={(e) => field.onChange(Number(e.target.value))} />
-                                    </Field>
-                                )}
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start text-left"
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {deadline
+                                            ? format(deadline, "PPP")
+                                            : "Pick a deadline"}
+                                    </Button>
+                                </PopoverTrigger>
 
-                            <Field>
-                                <Button type="submit" form="create-job-form">Submit</Button>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={deadline}
+                                        onSelect={setDeadline}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
 
-                            </Field>
-                        </FieldGroup>
+                        {/* Description (TipTap Editor) */}
+                        <div className="space-y-2">
+                            <Label>Job Description</Label>
+
+                            <div className="border rounded-2xl overflow-hidden bg-background">
+                                <SimpleEditor
+                                    value={description}
+                                    onChange={setDescription}
+                                />
+
+                            </div>
+
+
+
+                            <p className="text-xs text-muted-foreground">
+                                Add responsibilities, requirements, and benefits.
+                            </p>
+                        </div>
+
+                        {/* Submit */}
+                        <div className="flex justify-end">
+                            <Button type="submit" className="px-6">
+                                Publish Job
+                            </Button>
+                        </div>
+
                     </form>
-
                 </CardContent>
             </Card>
-            {/* <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription> */}
-        </div >
-    )
+        </div>
+    );
 }

@@ -4,45 +4,63 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // ✅ get token from Authorization header (NOT cookies)
-    const authHeader = req.headers.get("authorization");
-    const token = authHeader?.split(" ")[1];
-
-    console.log("RAW AUTH HEADER:", authHeader);
-    console.log("TOKEN ONLY:", authHeader?.split(" ")[1]);
-    console.log("ALL HEADERS:", Object.fromEntries(req.headers.entries()));
-
-    if (!token) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const djangoRes = await fetch(
-      `${process.env.DJANGO_URL}/job/jobs/`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      }
-    );
-
-    const data = await djangoRes.json();
-
-    return NextResponse.json(data, {
-      status: djangoRes.status,
+    const res = await fetch(`${process.env.DJANGO_URL}/job/jobs/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        cookie: req.headers.get("cookie") || "",
+      },
+      body: JSON.stringify(body),
     });
 
-  } catch (error) {
-    console.error("API ERROR:", error);
+    const text = await res.text();
 
-    return NextResponse.json(
-      { message: "Internal Server Error" },
+    return new NextResponse(text, {
+      status: res.status,
+      headers: { "Content-Type": "application/json" }, // 🔥 force JSON
+    });
+
+  } catch (err: any) {
+    return new NextResponse(
+      JSON.stringify({ message: err.message }),
       { status: 500 }
     );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const res = await fetch(`${process.env.DJANGO_URL}/job/jobs/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+         cookie: req.headers.get("cookie") || "",
+      },
+      cache: "no-store", // 👈 important for fresh data
+    })
+
+    // Handle non-JSON (you faced this earlier)
+    const text = await res.text()
+
+    let data
+    try {
+      data = JSON.parse(text)
+    } catch {
+      console.error("Invalid JSON from backend:", text)
+      return NextResponse.json(
+        { error: "Invalid response from server" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(data)
+
+  } catch (error) {
+    console.error("API ERROR:", error)
+
+    return NextResponse.json(
+      { error: "Failed to fetch jobs" },
+      { status: 500 }
+    )
   }
 }
