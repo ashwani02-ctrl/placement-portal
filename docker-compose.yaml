@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  nextjs:
+    container_name: nextjs_app
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules   # prevents overwrite
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true  # fixes hot reload issues
+    command: npm run dev

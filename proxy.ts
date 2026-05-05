@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 
 export default function proxy(request: NextRequest) {
-  const token = request.cookies.get("token"); // ✅ FIXED
+  const token = request.cookies.get("access"); // ✅ FIXED
 
   const { pathname } = request.nextUrl;
 

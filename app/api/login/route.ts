@@ -13,30 +13,29 @@ export async function POST(req: Request) {
             body: JSON.stringify(body),
         });
 
-        let data;
-        try {
-            data = await res.json();
-        } catch {
-            return NextResponse.json(
-                { error: "Invalid response from backend" },
-                { status: 500 }
-            );
-        }
-
-        const response = NextResponse.json(data, {
-            status: res.status,
-        });
-
-        if (res.ok) {
-            response.cookies.set("token", data.access, {
-                httpOnly: true,
-                path: "/",
-                sameSite: "lax",
-                secure: false,
+        const data = await res.json();
+        if (!res.ok) {
+            return NextResponse.json(data, {
+                status: res.status,
             });
         }
 
-        return response;
+        // Set cookies for Next.js
+        const cookieStore = await cookies();
+
+        cookieStore.set("access", data.access, {
+            httpOnly: true,
+            secure: true,
+            path: "/"
+        });
+
+        cookieStore.set("refresh", data.refresh, {
+            httpOnly: true,
+            secure: true,
+            path: "/"
+        });
+
+        return NextResponse.json({ message: "Login successful" }, { status: 200 });
 
     } catch (error) {
         console.error("LOGIN ERROR:", error);
