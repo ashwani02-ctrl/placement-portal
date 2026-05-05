@@ -5,6 +5,10 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
 
+        const controller = new AbortController();
+
+        setTimeout(() => controller.abort(), 600000); // 10 sec timeout
+
         const res = await fetch(`${process.env.DJANGO_URL}/api/auth/login/`, {
             method: "POST",
             headers: {

@@ -9,6 +9,12 @@ function Login() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const controller = new AbortController();
+    const timeout = 10 * 60 * 1000; // 10 minutes
+
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+    }, timeout);
 
     async function login(email: string, password: string) {
         const res = await fetch(`/api/login/`, {
@@ -16,6 +22,7 @@ function Login() {
             // credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
+            signal: controller.signal,
         });
         console.log(res);
 
