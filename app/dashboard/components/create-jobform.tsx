@@ -5,12 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import Cookies from "js-cookie"
 import dynamic from "next/dynamic";
-
-const CKEditor = dynamic(
-    () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
-    { ssr: false }
-);
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic"
+import { toast } from "sonner"
+import React, { useState } from "react";
+import TiptapEditor from "./tiptapeditor";
 import {
     Field,
     FieldDescription,
@@ -43,7 +40,7 @@ export const jobSchema = z.object({
 
     deadline: z
         .coerce.date()
-        ,
+    ,
 
     location: z.enum([
         "Delhi",
@@ -72,11 +69,64 @@ export function CreateJobForm({
             title: "",
             description: "",
             skills: "",
-            deadline: "",
+            deadline: undefined,
             location: "Delhi",
             salary: 0,
         },
     });
+
+    // submit handler
+    async function onSubmit(values: z.input<typeof jobSchema>) {
+        toast("You submitted the following values:", {
+            description: (
+                <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
+                    <code>{JSON.stringify(values, null, 2)}</code>
+                </pre>
+            ),
+            position: "top-center",
+            classNames: {
+                content: "flex flex-col gap-2",
+            },
+            style: {
+                "--border-radius": "calc(var(--radius)  + 4px)",
+            } as React.CSSProperties,
+        });
+
+        const token = Cookies.get("token");
+        // toast(`token: ${token}`);
+
+        try {
+            const res = await fetch(`/api/jobs/`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(values),
+            });
+
+            const result = await res.json();
+
+
+            if (res.status == 500) {
+                toast.error(`${result.message}`, { position: "top-center" });
+            }
+            else if (!res.ok) {
+                toast.error(result.message || "Job Creation failed");
+                throw new Error(JSON.stringify(result));
+            }
+            else {
+                toast("Job Created!", { position: "top-center" });
+            }
+
+        } catch (err) {
+            console.error("Login error:", err);
+        }
+    }
+
+
+
     return (
         <div className={cn("flex flex-col gap-6 px-10 py-10", className)} {...props}>
             <Card>
@@ -85,7 +135,7 @@ export function CreateJobForm({
                 </CardHeader>
                 <CardContent>
                     {/* <Form {...form}> */}
-                    <form id="create-job-form" >
+                    <form id="create-job-form" onSubmit={form.handleSubmit(onSubmit)}>
                         <FieldGroup>
 
                             {/* title Controller */}
@@ -108,12 +158,9 @@ export function CreateJobForm({
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel>Job Description</FieldLabel>
-                                        <CKEditor
-                                            editor={ClassicEditor as any}
-                                            data={field.value || ""}   
-                                            onChange={(_, editor) => {
-                                                field.onChange(editor.getData());
-                                            }}
+                                        <TiptapEditor
+                                            value={field.value || ""}
+                                            onChange={field.onChange}
                                         />
                                     </Field>
                                 )}
@@ -137,11 +184,17 @@ export function CreateJobForm({
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel>Deadline</FieldLabel>
+
                                         <Input
                                             type="datetime-local"
-                                            value={field.value as any}
-                                            onChange={field.onChange}
+                                            value={
+                                                field.value
+                                                    ? new Date(field.value as string | number | Date).toISOString().slice(0, 16)
+                                                    : ""
+                                            }
+                                            onChange={(e) => field.onChange(e.target.value)}
                                         />
+
                                     </Field>
                                 )}
                             />
@@ -179,8 +232,7 @@ export function CreateJobForm({
                             />
 
                             <Field>
-                                <Button type="submit" form="create-job
-                                -form">Submit</Button>
+                                <Button type="submit" form="create-job-form">Submit</Button>
 
                             </Field>
                         </FieldGroup>
