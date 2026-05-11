@@ -1,8 +1,9 @@
 import React from 'react'
+import ResumeForm from '../components/create-resumeform'
 
 function page() {
   return (
-    <div>Resume Generator</div>
+    <ResumeForm/>
   )
 }
 

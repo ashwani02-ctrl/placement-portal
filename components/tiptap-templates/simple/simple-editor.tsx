@@ -290,15 +290,17 @@ export function SimpleEditor({
   });
 
   useEffect(() => {
-  if (!editor) return;
+    if (!editor) return;
 
-  const current = editor.getHTML();
+    const current = editor.getHTML();
 
-  if (value !== current) {
-    editor.commands.setContent(value || "", false); // ✅ false = don't reset history
-  }
-}, [value, editor]);
-  
+    if (value !== current) {
+      editor.commands.setContent(value || "", {
+        emitUpdate: false,
+      });
+    }
+  }, [value, editor]);
+
   const rect = useCursorVisibility({
     editor,
     overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
