@@ -1,3 +1,4 @@
+"use client"
 import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor"
 import { useState } from "react";
 
